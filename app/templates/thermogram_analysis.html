@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Интерактивный анализ термограммы</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        #thermogramCanvas {
+            border: 2px solid #000;
+            cursor: crosshair;
+            max-width: 100%;
+        }
+        .point-info {
+            margin-top: 10px;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+        #pointsContainer {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">Интерактивный анализ термограммы</h1>
+        
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        Термограмма
+                        <input type="file" id="thermogramUpload" class="form-control form-control-sm" accept="image/*">
+                    </div>
+                    <div class="card-body">
+                        <canvas id="thermogramCanvas"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">Измерительные точки</div>
+                    <div class="card-body">
+                        <div id="pointsContainer"></div>
+                        <div class="mt-3">
+                            <button id="addPointBtn" class="btn btn-primary btn-sm">Добавить точку</button>
+                            <button id="saveAnalysisBtn" class="btn btn-success btn-sm">Сохранить анализ</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="analysisResults" class="mt-4" style="display: none;">
+            <div class="card">
+                <div class="card-header">Результаты анализа</div>
+                <div class="card-body" id="analysisDetailsContainer"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const canvas = document.getElementById('thermogramCanvas');
+        const ctx = canvas.getContext('2d');
+        const fileInput = document.getElementById('thermogramUpload');
+        const pointsContainer = document.getElementById('pointsContainer');
+        const addPointBtn = document.getElementById('addPointBtn');
+        const saveAnalysisBtn = document.getElementById('saveAnalysisBtn');
+        const analysisResults = document.getElementById('analysisResults');
+        const analysisDetailsContainer = document.getElementById('analysisDetailsContainer');
+
+        let image = new Image();
+        let points = [];
+        let isDrawing = false;
+
+        // Загрузка изображения
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function(event) {
+                image.onload = function() {
+                    canvas.width = image.width;
+                    canvas.height = image.height;
+                    ctx.drawImage(image, 0, 0);
+                }
+                image.src = event.target.result;
+            }
+
+            reader.readAsDataURL(file);
+        });
+
+        // Добавление точки по клику
+        canvas.addEventListener('click', function(event) {
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+
+            // Рисуем точку
+            ctx.beginPath();
+            ctx.arc(x, y, 5, 0, 2 * Math.PI);
+            ctx.fillStyle = 'red';
+            ctx.fill();
+
+            // Создаем форму для ввода температуры с расширенными настройками
+            const pointDiv = document.createElement('div');
+            pointDiv.classList.add('point-info', 'card', 'mb-2');
+            pointDiv.innerHTML = `
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label>Координаты</label>
+                            <input type="text" class="form-control form-control-sm" value="(${x.toFixed(0)}, ${y.toFixed(0)})" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label>Температура (°C)</label>
+                            <input type="number" class="form-control form-control-sm" placeholder="Введите температуру" step="0.1" min="-50" max="200" required>
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-md-12">
+                            <label>Описание</label>
+                            <select class="form-select form-select-sm">
+                                <option value="">Выберите тип точки</option>
+                                <option value="hotspot">Горячая точка</option>
+                                <option value="coldspot">Холодная точка</option>
+                                <option value="normal">Нормальная точка</option>
+                                <option value="critical">Критическая точка</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-md-12">
+                            <button onclick="removePoint(this)" class="btn btn-danger btn-sm">Удалить</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            pointsContainer.appendChild(pointDiv);
+            points.push({x, y});
+        });
+
+        // Удаление точки
+        function removePoint(btn) {
+            const pointDiv = btn.closest('.point-info');
+            const index = Array.from(pointsContainer.children).indexOf(pointDiv);
+            
+            // Очищаем и перерисовываем изображение
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(image, 0, 0);
+
+            points.splice(index, 1);
+            pointDiv.remove();
+
+            // Перерисовываем оставшиеся точки
+            points.forEach(point => {
+                ctx.beginPath();
+                ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
+                ctx.fillStyle = 'red';
+                ctx.fill();
+            });
+        }
+
+        // Сохранение анализа
+        saveAnalysisBtn.addEventListener('click', function() {
+            const pointTemperatures = Array.from(document.querySelectorAll('.point-info'))
+                .map((pointDiv, index) => {
+                    const temperatureInput = pointDiv.querySelector('input[type="number"]');
+                    const descriptionSelect = pointDiv.querySelector('.form-select');
+                    return {
+                        ...points[index],
+                        temperature: temperatureInput.value,
+                        description: descriptionSelect.value
+                    };
+                });
+
+            // Отправляем данные на сервер
+            fetch('/save_thermogram_analysis', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    points: pointTemperatures,
+                    image: canvas.toDataURL('image/png')
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Показываем результаты анализа
+                analysisResults.style.display = 'block';
+                analysisDetailsContainer.innerHTML = `
+                    <div class="alert alert-success">
+                        <h4>Анализ сохранен</h4>
+                        <p>ID анализа: ${data.analysis_id}</p>
+                        <p>Уровень риска: ${data.risk_assessment.risk_level}</p>
+                        <a href="/advanced_analysis/${data.analysis_id}" class="btn btn-primary btn-sm">
+                            Подробный анализ
+                        </a>
+                        <a href="/analysis_export/${data.analysis_id}" class="btn btn-secondary btn-sm">
+                            Экспортировать
+                        </a>
+                    </div>
+                `;
+            })
+            .catch(error => {
+                console.error('Ошибка:', error);
+                alert('Не удалось сохранить анализ');
+            });
+        });
+    </script>
+</body>
+</html>

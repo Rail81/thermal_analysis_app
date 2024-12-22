@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Детали теплового анализа</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; }
+        .thermogram-container { display: flex; }
+        .thermogram-image { max-width: 500px; }
+        .points-table { width: 100%; border-collapse: collapse; }
+        .points-table th, .points-table td { 
+            border: 1px solid #ddd; 
+            padding: 8px; 
+            text-align: left; 
+        }
+    </style>
+</head>
+<body>
+    <h1>Детали теплового анализа</h1>
+    
+    <div class="analysis-summary">
+        <p><strong>Дата анализа:</strong> {{ analysis.analysis_date.strftime('%d.%m.%Y %H:%M') }}</p>
+        <p><strong>Макс. температура:</strong> {{ analysis.max_temperature }}°C</p>
+        <p><strong>Мин. температура:</strong> {{ analysis.min_temperature }}°C</p>
+        <p><strong>Средняя температура:</strong> {{ analysis.avg_temperature }}°C</p>
+    </div>
+
+    <div class="thermogram-container">
+        <img src="{{ url_for('static', filename='uploads/' + analysis.thermogram_path.split('/')[-1]) }}" 
+             alt="Термограмма" class="thermogram-image">
+        
+        <div class="points-list">
+            <h2>Точки измерений</h2>
+            <table class="points-table">
+                <thead>
+                    <tr>
+                        <th>X</th>
+                        <th>Y</th>
+                        <th>Температура</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for point in points %}
+                    <tr>
+                        <td>{{ point.x_coordinate }}</td>
+                        <td>{{ point.y_coordinate }}</td>
+                        <td>{{ point.temperature }}°C</td>
+                        <td>{{ point.description }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="actions">
+        <a href="{{ url_for('thermogram_analysis') }}">Новый анализ</a>
+    </div>
+</body>
+</html>

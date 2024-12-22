@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Результат анализа</title>
+</head>
+<body>
+    <h1>Результат теплового анализа</h1>
+    <div>
+        <h2>Параметры оборудования</h2>
+        <p>Максимальная температура: {{ analysis.max_temperature }}°C</p>
+        <p>Минимальная температура: {{ analysis.min_temperature }}°C</p>
+        <p>Средняя температура: {{ analysis.avg_temperature }}°C</p>
+        <p>Статус перегрева: {{ analysis.overload_status }}</p>
+        <p>Уровень риска: {{ analysis.risk_level }}</p>
+    </div>
+    <a href="{{ url_for('index') }}">Назад</a>
+</body>
+</html>
